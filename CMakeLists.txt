@@ -59,6 +59,7 @@ include_directories(include)
 add_executable(scheduler src/main.cpp
         include/parker.h
         include/ebr.h
+        include/task.h
 
 )
 
