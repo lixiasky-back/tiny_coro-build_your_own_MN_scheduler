@@ -60,6 +60,12 @@ add_executable(scheduler src/main.cpp
         include/parker.h
         include/ebr.h
         include/task.h
+        include/queue.h
+        include/worker.h
+        include/poller.h
+        include/scheduler.h
+        include/timer.h
+        include/socket.h
 
 )
 
