@@ -71,7 +71,7 @@ public:
     void await_suspend(std::coroutine_handle <Task::Promise> h) {
         // Ref +1 (for Reactor)
         h.promise().ref_count.fetch_add(1, std::memory_order_seq_cst);
-        reactor_->register_read(fd_, h.address());
+        reactor_->register_write(fd_, h.address());
     }
 
     ssize_t await_resume() {
@@ -186,6 +186,9 @@ public:
     }
 
     int bind(const char* ip, int port) {
+        if (fd_ != -1) {
+            ::close(fd_);
+        }
         fd_ = socket(AF_INET, SOCK_STREAM, 0);
         if (fd_ < 0) return -1;
 

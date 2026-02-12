@@ -3,8 +3,6 @@
 #include <vector>
 #include <stdexcept>
 #include <unistd.h>
-#include <fcntl.h>
-#include <functional>
 
 // ==========================================
 // Linux Implementation (epoll)
@@ -147,7 +145,6 @@ public:
 
         int n = kevent(kq_, nullptr, 0, events_, 128, tsp);
         for (int i = 0; i < n; ++i) {
-            // 过滤 WAKEUP 事件
             if (events_[i].filter == EVFILT_USER) continue;
             
             if (events_[i].udata) {

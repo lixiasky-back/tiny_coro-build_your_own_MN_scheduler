@@ -66,7 +66,10 @@ add_executable(scheduler src/main.cpp
         include/scheduler.h
         include/timer.h
         include/socket.h
-
+        include/picohttpparser/picohttpparser.h
+        include/picohttpparser/picohttpparser.c
+        include/http/http_parser.h
+        include/http/http_server.h
 )
 
 # ==========================================
