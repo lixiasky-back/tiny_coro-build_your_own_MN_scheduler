@@ -2,61 +2,80 @@ cmake_minimum_required(VERSION 3.20)
 project(EbrScheduler LANGUAGES CXX)
 
 # ==========================================
-# 1. C++ standard
+# 1. C++ Standard Configuration
 # ==========================================
-# Require C++20 (GCC 10+/Clang 10+ for coroutines)
+# Require C++20 (Required for Coroutines: GCC 10+ / Clang 10+)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) # Std C++ only: -std=c++20 (no gnu++20)
+set(CMAKE_CXX_EXTENSIONS OFF) # Standard C++ only: -std=c++20 (no gnu++20)
 
 # ==========================================
-# 2. Platform & compiler optimizations
+# 2. Sanitizer Configuration (ASAN/TSAN)
+# ==========================================
+# Note: ASAN and TSAN usually cannot be used simultaneously.
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(ENABLE_TSAN "Enable ThreadSanitizer" OFF)
+
+set(SANITIZER_FLAGS "")
+if(ENABLE_ASAN)
+    message(STATUS "AddressSanitizer enabled")
+    # -fno-omit-frame-pointer helps produce better stack traces
+    set(SANITIZER_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+elseif(ENABLE_TSAN)
+    message(STATUS "ThreadSanitizer enabled")
+    set(SANITIZER_FLAGS "-fsanitize=thread")
+endif()
+
+# ==========================================
+# 3. Platform & Compiler Optimizations
 # ==========================================
 
-# Warnings: GCC & Clang compatible
-add_compile_options(-Wall -Wextra)
+# General warnings and sanitizer flags
+add_compile_options(-Wall -Wextra ${SANITIZER_FLAGS})
+# Sanitizers must be passed to the linker as well
+add_link_options(${SANITIZER_FLAGS})
 
 if(APPLE)
-    # --- mmacOS-only config ---
+    # --- macOS-specific configuration ---
     message(STATUS "Configuring for macOS...")
     add_compile_options(-O3)
 
-    # Apple Silicon Opt
+    # Apple Silicon Optimization
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         add_compile_options(-march=armv8-a)
     endif()
 
 elseif(UNIX AND NOT APPLE)
-    # --- Linux (GCC/Clang) config ---
+    # --- Linux (GCC/Clang) configuration ---
     message(STATUS "Configuring for Linux...")
 
     # -O3: Highest level of optimization
-    # -march=native: Extremely important! Tells GCC to generate optimal code for the CPU of the machine running this program
-    # (e.g., automatically enables instruction sets like AVX2, AVX512, BMI2, which are critical for lock-free queue performance)
+    # -march=native: Generates code for the local CPU (enables AVX2, AVX512, BMI2, etc.)
+    # This is critical for high-performance lock-free data structures.
     add_compile_options(-O3 -march=native)
 
-    # GCC only: suppress false coroutine warnings
+    # Suppress false coroutine warnings on GCC
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-Wno-unknown-pragmas)
     endif()
 endif()
 
 # ==========================================
-# 3. dependency_lookup
+# 4. Dependency Lookup
 # ==========================================
 
-# Lookup pthread
+# Find pthread
 find_package(Threads REQUIRED)
 
-# Include header dirs
+# Include header directories
 include_directories(include)
 
 # ==========================================
-# 4. Define target (executable/library)
+# 5. Define Target (Changed to 'example')
 # ==========================================
 
-# Add all files to target (IDE-friendly)
-add_executable(scheduler src/main.cpp
+# Add all source and header files to target for IDE visibility
+add_executable(example src/simple_http_web.cpp
         include/parker.h
         include/ebr.h
         include/task.h
@@ -73,17 +92,20 @@ add_executable(scheduler src/main.cpp
 )
 
 # ==========================================
-# 5. Link libs
+# 6. Linking
 # ==========================================
 
-target_link_libraries(scheduler PRIVATE Threads::Threads)
+target_link_libraries(example PRIVATE Threads::Threads)
 
-# [Critical] GCC on Linux usually requires explicit linking of libatomic
-# If 16-byte CAS is used in the code (e.g., std::atomic<std::shared_ptr>), linking may fail without this library
+# GCC on Linux requires libatomic for certain atomic operations (e.g., 16-byte CAS)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_libraries(scheduler PRIVATE atomic)
+    target_link_libraries(example PRIVATE atomic)
 endif()
 
-# 打印构建信息
+# Print Build Summary
+message(STATUS "--------------------------------------------")
+message(STATUS "Target: example")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Sanitizers: ${SANITIZER_FLAGS}")
+message(STATUS "--------------------------------------------")

@@ -1,3 +1,4 @@
+// Licensed under MIT (Commercial Allowed). See DUAL_LICENSING_NOTICE for details.
 #pragma once
 #include "../socket.h"
 #include "http_parser.h"

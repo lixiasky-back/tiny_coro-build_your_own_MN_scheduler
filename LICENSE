@@ -1,0 +1,60 @@
+DUAL LICENSING NOTICE
+==============================================================================
+This project is subject to a strict **File-Type Based Licensing Model**.
+By downloading, using, or distributing this repository, you agree to the
+terms detailed below.
+
+------------------------------------------------------------------------------
+1. PERMISSIVE LICENSE (MIT) - Commercial Use ALLOWED
+------------------------------------------------------------------------------
+The MIT License (as provided in 'LICENSE-MIT') is **STRICTLY LIMITED** to the
+following files intended for compilation and execution:
+
+    * .h
+    * .hpp
+    * .cpp
+    * CMakeLists.txt
+
+For these specific files only, you are granted permission to use, copy, modify,
+merge, publish, distribute, sublicense, and/or sell copies.
+
+**Note:** The 'LICENSE-MIT' file in this repository has been modified to
+incorporate this scope limitation by reference.
+
+------------------------------------------------------------------------------
+2. RESTRICTIVE LICENSE (CC BY-NC-SA 4.0) - Commercial Use FORBIDDEN
+------------------------------------------------------------------------------
+**ALL OTHER FILES** in this repository, including those created in the future
+that are not explicitly listed in Section 1, are governed by the
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+This includes, but is not limited to:
+    * All documentation (.md, .txt, .pdf, .docx)
+    * All visual assets, diagrams, and images (.png, .jpg, .svg)
+    * Project architecture, pseudocode, and educational logic
+    * The README file and all metadata
+
+**Commercial use of these materials is strictly prohibited.** (Prohibited uses
+include: paid courses, commercial books, monetized blogs, or behind-a-paywall
+content).
+
+> See the file 'LICENSE-CC' for the full CC BY-NC-SA 4.0 legal text.
+
+------------------------------------------------------------------------------
+3. CONFLICT RESOLUTION & PREVALENCE
+------------------------------------------------------------------------------
+**A. Source of Origin:** The applicable license is determined strictly by the **Source File** from which
+you are referencing or copying:
+   * If copied from source code (.cpp / .h), it is governed by the MIT License.
+   * If copied from documentation (.md), including the context, surrounding
+     text, or educational comments, it is governed by the CC BY-NC-SA 4.0 License.
+
+**B. Legal Prevalence:**
+In the event of any conflict or ambiguity between the standard text of the
+MIT/CC licenses and this Dual Licensing Notice, **this Notice shall prevail** as it defines the explicit scope of the licenses granted by the Author.
+
+==============================================================================
+COPYRIGHT NOTICE
+==============================================================================
+Copyright (c) 2026 lixiasky. All rights reserved.
+==============================================================================

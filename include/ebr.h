@@ -1,3 +1,4 @@
+// Licensed under MIT (Commercial Allowed). See DUAL_LICENSING_NOTICE for details.
 #pragma once
 #include <atomic>
 #include <vector>
@@ -7,42 +8,6 @@
 #include <thread>
 
 class EbrManager {
-private:
-    std::atomic<size_t> global_epoch_{0};
-    std::list<std::unique_ptr<LocalState>> threads_;
-    std::mutex mtx_;
-
-    void try_advance(LocalState* trigger_local) {
-        size_t global = global_epoch_.load(std::memory_order_acquire);
-
-        // Check if all active threads caught up to current Epoch
-        std::lock_guard<std::mutex> lock(mtx_);
-        for (auto& t : threads_) {
-            if (t->active.load(std::memory_order_relaxed) &&
-                t->epoch.load(std::memory_order_relaxed) != global) {
-                return; // Threads lagging; cannot advance
-                }
-        }
-
-        // Advance (Epoch)
-        size_t next = global + 1;
-        global_epoch_.store(next, std::memory_order_release);
-
-        // Clean old gens: (Global-2) is safe
-        // 3-bucket cycle: (next+1)%3 = oldest bucket
-        size_t safe_bin_idx = (next + 1) % 3;
-
-        // Simplified: trigger cleans its own bucket
-        // Prod: each thread cleans own bucket or use global cleanup list
-        for (auto& t : threads_) {
-            auto& bin = t->retire_bins[safe_bin_idx];
-            for (auto& node : bin) {
-                node.deleter(node.ptr);
-            }
-            bin.clear();
-        }
-    }
-
 public:
     struct Node {
         void* ptr;
@@ -96,6 +61,41 @@ public:
         if (local->op_count > 64) { // GC every 64 ops
             local->op_count = 0;
             try_advance(local);
+        }
+    }
+private:
+    std::atomic<size_t> global_epoch_{0};
+    std::list<std::unique_ptr<LocalState>> threads_;
+    std::mutex mtx_;
+
+    void try_advance(LocalState* trigger_local) {
+        size_t global = global_epoch_.load(std::memory_order_acquire);
+
+        // Check if all active threads caught up to current Epoch
+        std::lock_guard<std::mutex> lock(mtx_);
+        for (auto& t : threads_) {
+            if (t->active.load(std::memory_order_relaxed) &&
+                t->epoch.load(std::memory_order_relaxed) != global) {
+                return; // Threads lagging; cannot advance
+                }
+        }
+
+        // Advance (Epoch)
+        size_t next = global + 1;
+        global_epoch_.store(next, std::memory_order_release);
+
+        // Clean old gens: (Global-2) is safe
+        // 3-bucket cycle: (next+1)%3 = oldest bucket
+        size_t safe_bin_idx = (next + 1) % 3;
+
+        // Simplified: trigger cleans its own bucket
+        // Prod: each thread cleans own bucket or use global cleanup list
+        for (auto& t : threads_) {
+            auto& bin = t->retire_bins[safe_bin_idx];
+            for (auto& node : bin) {
+                node.deleter(node.ptr);
+            }
+            bin.clear();
         }
     }
 

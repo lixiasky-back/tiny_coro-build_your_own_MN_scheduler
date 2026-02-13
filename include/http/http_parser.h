@@ -1,3 +1,4 @@
+// Licensed under MIT (Commercial Allowed). See DUAL_LICENSING_NOTICE for details.
 #pragma once
 #include <string_view>
 #include <vector>
