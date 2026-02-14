@@ -14,7 +14,7 @@ If you are looking to learn the underlying logic of coroutines or how to get sta
 
 First, please finish reading this README file. At the very bottom of this file, you will be guided on how to navigate this repository for learning.
 
-![tinycoro](source/TinyCoro.gif)
+![tinycoro](assets/TinyCoro.gif)
 
 > All files in this project with .h, .cpp, .hpp, and CMakeLists.txt extensions are governed by the MIT License. All other files, including but not limited to how_to_make_your_M:N_scheduler.md, all .md files under the docs folder, project assets, diagrams, and this README, are governed by the CC BY-NC-SA 4.0 License (Commercial Use Strictly Prohibited).
 ---
@@ -39,11 +39,11 @@ First, please finish reading this README file. At the very bottom of this file, 
 
 Under a simple web backend [simple_http_web.cpp](src/simple_http_web.cpp) written based on this framework, the local loopback `wrk` test achieved a QPS of **186,045**, and passed all local tests including ASAN and TSAN.
 
-![Screenshot Example](source/example_test.png)
+![Screenshot Example](assets/example_test.png)
 
 Of course, we also implemented a concise Go code based on the same test logic -- [main.go](src/main.go), which achieved a QPS of **193,587** under the same environment's local loopback `wrk` test.
 
-![Screenshot Example](source/go_test.png)
+![Screenshot Example](assets/go_test.png)
 
 > This is not surprising news. Golang has been deeply optimized by Google and deeply integrated with the operating system, so this result is expected. At the same time, my test environment is my local machine. The socket errors reported by `wrk` should actually be a physical phenomenon caused jointly by **OS bottlenecks** and **test tool behavior**, rather than a logical bug. When the system is on the edge of "port exhaustion" or "denial of service," the behavior of the TCP stack becomes unstable. To reclaim resources, the operating system might send RST (Reset) packets directly to connections that seem "stuck" or at the "tail end," instead of a graceful FIN.
 
