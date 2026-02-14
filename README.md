@@ -14,7 +14,7 @@ If you are looking to learn the underlying logic of coroutines or how to get sta
 
 First, please finish reading this README file. At the very bottom of this file, you will be guided on how to navigate this repository for learning.
 
-![tinycoro](/source/TinyCoro.gif)
+![tinycoro](source/TinyCoro.gif)
 
 > All files in this project with .h, .cpp, .hpp, and CMakeLists.txt extensions are governed by the MIT License. All other files, including but not limited to how_to_make_your_M:N_scheduler.md, all .md files under the docs folder, project assets, diagrams, and this README, are governed by the CC BY-NC-SA 4.0 License (Commercial Use Strictly Prohibited).
 ---
