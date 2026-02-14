@@ -1,9 +1,11 @@
 # tiny_coro: A C++20 Educational Asynchronous Runtime
 
+---
 ![C++20](https://img.shields.io/badge/Standard-C%2B%2B20-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey.svg)
-
+---
 **tiny_coro** is a lightweight, high-performance M:N cooperative asynchronous runtime framework written from scratch based on **C++20 Coroutines**.
 
 The core objective of this project is **education** and **deconstruction**. It strips away the complex wrappers of industrial-grade libraries (such as Seastar, Folly) and demonstrates the core components of a modern high-concurrency runtime with the most minimalist code: **M:N Scheduler**, **Work-Stealing Algorithm**, **EBR Memory Reclamation**, **Lock-Free Queue**, and the **Reactor Pattern**.
@@ -161,8 +163,15 @@ make -j4
 ## Why Write This Project
 
 * **The main reason for writing this project is to allow more people to learn the underlying logic of coroutines, rather than treating it as black magic. It will not replace any existing frameworks, but it will be a very good educational project. The code is extremely minimal, likely around 1000 lines barring accidents, but I have configured corresponding documentation explanations for every file.**
-* **How to Start Learning**: Very simple. If you are a beginner, click this link [how_to_make_your_M:N_scheduler.md](how_to_make_your_M:N_scheduler.md), follow this document, and start learning according to the instructions. You don't need any foundation, just basic C++ syntax knowledge. The entire tutorial is easy to understand. If you are very familiar with coroutines and just curious about this project, you can directly open the `docs` folder and view as needed. Each module is independent and has corresponding source code to view.
-* **Why Are There Few Commits**: The reason is very realistic. The difficulty of this project is not small, especially the need to explain it clearly. The development process was entirely local and refactored many times. This repository is the version after the last purification and refactoring in a new folder, so there are few commits. The complete development time for the entire project should be around 6 to 8 months.
+
+##  How to Start Learning
+* **Very simple. If you are a beginner, click this link [how_to_make_your_M:N_scheduler.md](how_to_make_your_M:N_scheduler.md), follow this document, and start learning according to the instructions. You don't need any foundation, just basic C++ syntax knowledge. The entire tutorial is easy to understand. If you are very familiar with coroutines and just curious about this project, you can directly open the `docs` folder and view as needed. Each module is independent and has corresponding source code to view.**
+
+## Why Are There Few Commits
+* **The reason is very realistic. The difficulty of this project is not small, especially the need to explain it clearly. The development process was entirely local and refactored many times. This repository is the version after the last purification and refactoring in a new folder, so there are few commits. The complete development time for the entire project should be around 6 to 8 months.**
+
+## Why is there no version number?
+* **It’s actually quite simple. In my view, version numbers are used to track project iterations. However, this project is purely for educational purposes—or at least, that is my goal. I consider the teaching content to be complete as it is. Even if issues arise, they shouldn't require major changes, so I decided not to include a version number.**
 
 ## What to Do If You Encounter Learning Problems
 
