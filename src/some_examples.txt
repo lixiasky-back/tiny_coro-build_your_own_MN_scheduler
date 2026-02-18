@@ -1,0 +1,86 @@
+### 1. Basics: Hello World and Asynchronous Sleep
+
+```cpp
+#include "scheduler.h"
+#include <iostream>
+
+Task async_main(Scheduler& sched) {
+    std::cout << "Hello, ";
+    // Asynchronous sleep; does not block the thread.
+    // The scheduler will switch to execute other tasks.
+    co_await sleep_for(sched, 1000);
+    std::cout << "World!\n";
+}
+
+int main() {
+    Scheduler sched; // Defaults to using a number of threads equal to CPU cores
+    sched.spawn(async_main(sched));
+
+    // Block the main thread to keep the runtime alive (for demonstration only)
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    return 0;
+}
+```
+
+### 2. Advanced: HTTP Server (Echo & File Upload)
+
+```cpp
+#include "http_server.h"
+#include "scheduler.h"
+
+Task handle_client(AsyncSocket socket) {
+    HttpServer server(socket);
+    char buf[8192];
+
+    // 1. Read data
+    ssize_t n = co_await socket.read(buf, sizeof(buf));
+    if (n <= 0) co_return;
+
+    // 2. Zero-copy parsing
+    HttpRequest req;
+    int prev_len = HttpParser::parse_request(buf, n, req);
+
+    if (req.path == "/upload" && req.method == "POST") {
+        // 3. Stream to file (extremely low memory footprint)
+        size_t len = std::stoul(std::string(req.get_header("Content-Length")));
+        std::string_view initial_body(buf + prev_len, n - prev_len);
+
+        co_await server.receive_to_file("out.bin", len, initial_body);
+        co_await server.send_response(200, "text/plain", "Upload Saved");
+    } else {
+        co_await server.send_response(200, "text/html", "<h1>Hello tiny_coro</h1>");
+    }
+}
+
+Task server_main(Scheduler& sched) {
+    TcpListener listener(sched.reactor());
+    listener.bind("0.0.0.0", 8080);
+
+    while (true) {
+        // Asynchronous Accept
+        AsyncSocket client = co_await listener.accept();
+        sched.spawn(handle_client(std::move(client)));
+    }
+}
+```
+
+### 3. Synchronization: CSP Channel (Go-style)
+
+```cpp
+#include "channel.h"
+
+Task producer(Channel<int>& chan) {
+    for (int i = 0; i < 5; ++i) {
+        // Automatically suspends when the buffer is full
+        co_await chan.send(i);
+    }
+    chan.close();
+}
+
+Task consumer(Channel<int>& chan) {
+    // Automatically suspends when the buffer is empty
+    while (auto val = co_await chan.recv()) {
+        std::cout << "Received: " << *val << "\n";
+    }
+}
+```
