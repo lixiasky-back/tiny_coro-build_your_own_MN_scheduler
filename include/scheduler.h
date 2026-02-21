@@ -19,20 +19,12 @@
 #include "ebr.h"
 #include "queue.h"
 #include "parker.h"
-
+#include "timer.h"
 // ==========================================
 // 1. Basic Components
 // ==========================================
 
-using TimePoint = std::chrono::steady_clock::time_point;
-
-struct Timer {
-    TimePoint expiry;
-    std::coroutine_handle<> handle;
-    bool operator>(const Timer& other) const {
-        return expiry > other.expiry;
-    }
-};
+// Previously, the timer definition used the internal implementation in timer.h (same as the previous logic here) to enhance decoupling
 
 // Forward declaration
 class Scheduler;

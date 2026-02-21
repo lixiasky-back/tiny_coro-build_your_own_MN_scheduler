@@ -2,14 +2,17 @@
 
 **tiny_coro** is a high-performance asynchronous runtime framework based on **C++20 Coroutines**. It utilizes an **M:N threading model** (mapping M coroutines to N kernel threads), combining a **Work-Stealing** scheduling algorithm with **EBR (Epoch-Based Reclamation)** memory management to deliver a lock-free, highly concurrent, and low-latency asynchronous programming experience.
 
+
+
 ---
 
 ## Table of Contents
 
-1.  **Core Runtime**
-    * Scheduler
-    * Task
-    * Timer
+1.  **Core Runtime & Scheduling**
+    * Scheduler & Worker
+    * Reactor & Poller
+    * Task & Timer
+    * Queues (StealQueue & GlobalQueue)
 2.  **Network I/O**
     * TcpListener
     * AsyncSocket
@@ -19,20 +22,24 @@
 4.  **Concurrency & Synchronization**
     * AsyncMutex
     * Channel (CSP-style)
-5.  **Full Practical Examples**
+    * SpinLock & Parker
+5.  **Memory Management (Lock-Free Safety)**
+    * EbrManager & EbrGuard
+6.  **Full Practical Examples**
+7.  **Licensing**
 
 ---
 
-## 1. Core Runtime
+## 1. Core Runtime & Scheduling
 
 ### Headers
 * `#include "scheduler.h"`
 * `#include "task.h"`
+* `#include "queue.h"`
+* `#include "timer.h"`
 
 ### `class Scheduler`
 The control center of the system. It manages the Worker thread pool, the I/O Reactor, and the global task queue.
-
-
 
 | API Method | Description | Parameters / Return Value |
 | :--- | :--- | :--- |
@@ -42,11 +49,24 @@ The control center of the system. It manages the Worker thread pool, the I/O Rea
 | **`size_t worker_count()`** | **Get Thread Count**. | Returns the number of active worker threads. |
 | **`~Scheduler()`** | **Destructor**. | Sends stop signals, wakes all threads for reclamation, and exits safely. |
 
+### `class Reactor`
+The event-driven heart of the scheduler, running on its own thread. It handles both I/O multiplexing (via `epoll`/`kqueue`) and timer expirations (via a Min-Heap).
+
+
+
+| API Method | Description | Parameters / Return Value |
+| :--- | :--- | :--- |
+| **`void add_timer(TimePoint expiry, handle)`** | **Register Timer**. | Registers a coroutine to be resumed at a specific `steady_clock` time. |
+| **`void register_read(int fd, void* handle)`** | **Register I/O Read**. | Suspends coroutine until `fd` is readable. |
+| **`void register_write(int fd, void* handle)`**| **Register I/O Write**. | Suspends coroutine until `fd` is writable. |
+
 ### `struct Task`
 The standard return type for all asynchronous coroutine functions.
-* **Features**: Implements the C++20 coroutine `promise_type`.
-* **Memory Safety**: Maintains internal atomic reference counting.
-* **Usage**: Users generally do not need to manipulate `Task` members; simply use it as a return type.
+* **Features**: Implements the C++20 coroutine `promise_type`. Features **Symmetric Transfer** for stackless deep nesting.
+* **Memory Safety**: Maintains internal atomic reference counting (`ref_count`).
+* **Advanced Lifecycle API**:
+    * `void* detach()`: Strips the coroutine handle ownership for raw pointer storage (used by lock-free queues).
+    * `static Task from_address(void* ptr)`: Restores a `Task` object from a raw pointer.
 
 ### `async function sleep_for`
 Asynchronous sleep function (Timer).
@@ -59,6 +79,13 @@ AsyncSleep sleep_for(Scheduler& s, int ms);
 co_await sleep_for(sched, 1000); // Suspends current coroutine for 1s; thread picks up other tasks.
 ```
 
+### `Queues (GlobalQueue & StealQueue)`
+The underlying data structures driving the Work-Stealing model.
+* **`GlobalQueue<T>`**: A thread-safe, mutex-protected `std::deque` for external task submissions.
+* **`StealQueue<T>`**: A lock-free, SPMC (Single-Producer Multi-Consumer) queue based on the **Chase-Lev algorithm**. It uses `alignas(64)` to prevent false sharing and ensures zero-contention task execution for the queue owner.
+
+
+
 ---
 
 ## 2. Network I/O
@@ -67,7 +94,7 @@ co_await sleep_for(sched, 1000); // Suspends current coroutine for 1s; thread pi
 * `#include "socket.h"`
 
 ### `class TcpListener`
-Used for server-side TCP connection listening.
+Used for server-side TCP connection listening. Automatically configures sockets to non-blocking mode.
 
 | API Method | Description | Parameters / Return Value |
 | :--- | :--- | :--- |
@@ -76,7 +103,7 @@ Used for server-side TCP connection listening.
 | **`CoAccept accept()`** | **Accept Connection**. **Awaitable**. | **Usage**: `AsyncSocket client = co_await listener.accept();`<br>Returns: An established `AsyncSocket` object. |
 
 ### `class AsyncSocket`
-A wrapper for asynchronous non-blocking TCP sockets. Follows RAII principles; the connection closes automatically upon destruction.
+A wrapper for asynchronous non-blocking TCP sockets. Follows strict RAII principles; the connection closes automatically upon destruction.
 
 | API Method | Description | Parameters / Return Value |
 | :--- | :--- | :--- |
@@ -84,7 +111,7 @@ A wrapper for asynchronous non-blocking TCP sockets. Follows RAII principles; th
 | **`AsyncWriteAwaiter write(const void* buf, size_t len)`** | **Async Write**. **Awaitable**. | `buf`: Pointer to data. <br>`len`: Data length. <br>**Returns**: `ssize_t` (bytes written). |
 | **`write(const std::string& s)`** | **String Write Overload**. | Helper method to send a `std::string`. |
 | **`int fd()`** | **Get Native FD**. | Used for low-level operations (e.g., `setsockopt`). |
-| **`AsyncSocket(AsyncSocket&&)`** | **Move Constructor**. | Supports ownership transfer. **Copying is disabled**. |
+| **`AsyncSocket(AsyncSocket&&)`** | **Move Constructor**. | Supports ownership transfer. **Copying is strictly disabled**. |
 
 ---
 
@@ -95,7 +122,7 @@ A wrapper for asynchronous non-blocking TCP sockets. Follows RAII principles; th
 * `#include "http_server.h"`
 
 ### `struct HttpRequest`
-A lightweight, Zero-Copy view of an HTTP request.
+A lightweight, **Zero-Copy** view of an HTTP request.
 * **Members**:
     * `std::string_view method`: HTTP Method ("GET", "POST").
     * `std::string_view path`: Request Path ("/index.html").
@@ -104,7 +131,7 @@ A lightweight, Zero-Copy view of an HTTP request.
     * `std::string_view get_header(name)`: Linear search for a header value.
 
 ### `class HttpParser`
-A static utility class wrapping `picohttpparser`.
+A static utility class wrapping `picohttpparser` for high-speed parsing.
 
 ```cpp
 // Parse Request
@@ -128,9 +155,11 @@ A helper class built on top of `AsyncSocket` for HTTP handling.
 ### Headers
 * `#include "async_mutex.h"`
 * `#include "channel.h"`
+* `#include "spinlock.h"`
+* `#include "parker.h"`
 
 ### `class AsyncMutex`
-A cooperative mutex. It **suspends the coroutine** on contention instead of blocking the kernel thread.
+A cooperative mutex. It **suspends the coroutine** on contention instead of blocking the kernel thread, yielding the CPU to other coroutines immediately.
 
 | API Method | Description | Usage Example |
 | :--- | :--- | :--- |
@@ -139,9 +168,7 @@ A cooperative mutex. It **suspends the coroutine** on contention instead of bloc
 | **`void unlock()`** | **Unlock**. | Usually called automatically by `ScopedLock`. Uses Baton Passing. |
 
 ### `class Channel<T>`
-CSP-style communication channel.
-
-
+CSP-style communication channel for safe data exchange between coroutines.
 
 | API Method | Description | Behavioral Details |
 | :--- | :--- | :--- |
@@ -150,9 +177,33 @@ CSP-style communication channel.
 | **`recv()`** | **Receive**. **Awaitable**. | Suspends if the buffer is empty (or no sender in unbuffered mode). <br>Returns `std::optional<T>`. |
 | **`void close()`** | **Close Channel**. | Wakes all waiters; `recv` will subsequently return `nullopt`. |
 
+### Low-Level Sync: `SpinLock` & `Parker`
+* **`SpinLock`**: A TTAS (Test-Test-And-Set) user-space spinlock optimized with `_mm_pause()`. Used internally for ultra-short critical sections (nanosecond duration) to prevent Cache Line Bouncing.
+* **`Parker`**: A thread-suspension primitive built on `std::condition_variable` (acting as a `futex` wrapper), allowing Worker threads to sleep with zero CPU usage when no tasks are available.
+
 ---
 
-## 5. Full Practical Examples
+## 5. Memory Management (Lock-Free Safety)
+
+### Headers
+* `#include "ebr.h"`
+
+### `class EbrManager`
+Implements **Epoch-Based Reclamation (EBR)** to solve the ABA problem and prevent premature memory deallocation in the lock-free `StealQueue`.
+
+
+
+| API Method | Description | Note |
+| :--- | :--- | :--- |
+| **`static EbrManager& get()`** | **Singleton Access**. | Global epoch coordinator. |
+| **`LocalState* register_thread()`** | **Thread Registration**. | Called once per Worker thread upon creation. |
+| **`void retire(LocalState*, T* ptr)`** | **Deferred Deletion**. | Marks a pointer for deletion. It will only be `delete`d when no thread is observing the old epoch. |
+
+* **`EbrGuard`**: An RAII helper used by Worker threads. Entering an `EbrGuard` scope marks the thread as `Active` in the current epoch, ensuring safe reads from the lock-free queues.
+
+---
+
+## 6. Full Practical Examples
 
 ### Example 1: Hello World (Basic Scheduling)
 ```cpp
@@ -167,7 +218,7 @@ Task hello(Scheduler& sched) {
 }
 
 int main() {
-    Scheduler sched; // Start runtime
+    Scheduler sched; // Start runtime (uses hardware concurrency by default)
     sched.spawn(hello(sched));
     
     // Block main thread just to keep the demo alive
@@ -280,3 +331,5 @@ int main() {
     return 0;
 }
 ```
+
+---
