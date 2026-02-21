@@ -26,7 +26,6 @@
 5.  **Memory Management (Lock-Free Safety)**
     * EbrManager & EbrGuard
 6.  **Full Practical Examples**
-7.  **Licensing**
 
 ---
 
