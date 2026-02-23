@@ -1,4 +1,3 @@
-```
 # Documentation: include/task.h
 
 ## 1. 📄 Overview
@@ -95,4 +94,3 @@ struct FinalAwaiter {
 ### 4.3 Memory Management Safety
 * **Reference Count Reaching Zero**: `handle.destroy()` is executed to release coroutine frame memory only when the last object holding the `Task` is destructed and no queues hold the handle address. This completely resolves memory barrier and visibility issues in lock-free scheduling.
 
-```
