@@ -8,11 +8,12 @@ project(EbrScheduler LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
+add_compile_options(-stdlib=libc++)
+link_libraries(-stdlib=libc++)
 # ==========================================
 # 2. Sanitizer Configuration
 # ==========================================
-option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 option(ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 
 set(SANITIZER_FLAGS "")
